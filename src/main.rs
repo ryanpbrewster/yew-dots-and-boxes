@@ -1,4 +1,4 @@
-use game_of_life::{Model, Msg};
+use dots_and_boxes::{Model, Msg};
 use log::trace;
 use yew::App;
 
