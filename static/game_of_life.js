@@ -1,0 +1,1 @@
+../target/wasm32-unknown-unknown/release/game_of_life.js
