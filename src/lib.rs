@@ -147,8 +147,8 @@ impl Model {
             LifeState::Dead => "cellule-dead",
         };
         html! {
-        <div class=("game-cellule", cellule_status),
-            onclick=|_| Msg::ToggleCellule(i, j),> </div>
+        <td class=("game-cellule", cellule_status),
+            onclick=|_| Msg::ToggleCellule(i, j),> </td>
         }
     }
 }

@@ -8,21 +8,17 @@ body {
 body {
     font: 14px 'Helvetica Neue', Helvetica, Arial, sans-serif;
     line-height: 1.4em;
-    color: #4d4d4d;
-    min-width: 230px;
-    max-width: 950px;
     margin: 0 auto;
+    display: inline-block;
     -webkit-font-smoothing: antialiased;
     -moz-font-smoothing: antialiased;
     font-smoothing: antialiased;
     font-weight: 300;
-    background-color: #000000;
+    background-color: #777777;
 }
 
 .app-header {
-    background-color: #000;
     height: 130px;
-    color: aliceblue;
 }
 
 .app-title {
@@ -36,40 +32,37 @@ body {
 }
 
 .app-footer {
-    background-color: #000000;
     height: 30px;
     padding: 10px;
 }
 
 .footer-text {
-    color: aliceblue;
     padding-left: 20px;
     font-size: 14px;
 }
 
 .game-area {
-    width: 94%;
-    max-width: 1000px;
     margin: 20px auto;
 }
 
 .game-container {
-    background: #000000;
     margin: 20px 0 0px 0;
 }
 
 .game-of-life {
-    background-color: aliceblue;
     width: 100%;
     overflow: hidden;
 }
 
+.game-of-life, table {
+    border-collapse: collapse;
+}
+
 .game-cellule {
     float: left;
-    width: 12px;
-    height: 12px;
+    width: 16px;
+    height: 16px;
     border: 1px solid #ccc;
-    border-radius: 1px;
 }
 
 .cellule-dead {
