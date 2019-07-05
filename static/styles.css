@@ -1,79 +1,20 @@
-html,
 body {
-    margin: 0;
-    padding: 0;
-    text-align: center;
+    background-color: #BBBBBB;
 }
 
-body {
-    font: 14px 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    line-height: 1.4em;
-    margin: 0 auto;
-    display: inline-block;
-    -webkit-font-smoothing: antialiased;
-    -moz-font-smoothing: antialiased;
-    font-smoothing: antialiased;
-    font-weight: 300;
-    background-color: #777777;
-}
-
-.app-header {
-    height: 130px;
-}
-
-.app-title {
-    font-size: 24px;
-    width: 100%;
-    font-weight: 100;
-    text-align: center;
-    -webkit-text-rendering: optimizeLegibility;
-    -moz-text-rendering: optimizeLegibility;
-    text-rendering: optimizeLegibility;
-}
-
-.app-footer {
-    height: 30px;
-    padding: 10px;
-}
-
-.footer-text {
-    padding-left: 20px;
-    font-size: 14px;
-}
-
-.game-area {
-    margin: 20px auto;
-}
-
-.game-container {
-    margin: 20px 0 0px 0;
-}
-
-.game-of-life {
-    width: 100%;
-    overflow: hidden;
-}
-
-.game-of-life, table {
-    border-collapse: collapse;
+#game-container {
+  position: absolute;
+  left: 200px;
+  top: 100px;
 }
 
 .game-cellule {
-    float: left;
+    position: absolute;
     width: 16px;
     height: 16px;
     border: 1px solid #ccc;
 }
 
-.cellule-dead {
-    background-color: white;
-}
-
-.cellule-live {
-    background-color: black ;
-}
-
-.game-buttons {
-    width: 100%;
-    margin-top: 20px;
+.game-cellule:hover {
+  background-color: yellow;
 }

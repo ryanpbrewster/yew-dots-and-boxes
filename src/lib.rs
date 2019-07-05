@@ -126,29 +126,26 @@ impl Model {
 
     fn view_cellule_grid(&self) -> Html<Model> {
         html! {
-            <table>
             { for (0 .. self.cellules_height).map(|i| self.view_cellule_row(i)) }
-            </table>
         }
     }
 
     fn view_cellule_row(&self, i: usize) -> Html<Model> {
         html! {
-            <tr>
             { for (0 .. self.cellules_width).map(|j| self.view_cellule(i, j)) }
-            </tr>
         }
     }
 
     fn view_cellule(&self, i: usize, j: usize) -> Html<Model> {
         let cellule = self.cellules[i * self.cellules_width + j];
-        let cellule_status = match cellule.life_state {
-            LifeState::Alive => "cellule-live",
-            LifeState::Dead => "cellule-dead",
+        let c = match cellule.life_state {
+            LifeState::Alive => "black",
+            LifeState::Dead => "white",
         };
         html! {
-        <td class=("game-cellule", cellule_status),
-            onclick=|_| Msg::ToggleCellule(i, j),> </td>
+        <div class="game-cellule",
+             style=format!("background-color:{};top:{}px;left:{}px;", c, 16 * i, 16 * j),
+            onclick=|_| Msg::ToggleCellule(i, j),> </div>
         }
     }
 }
@@ -196,26 +193,8 @@ impl Component for Model {
 impl Renderable<Model> for Model {
     fn view(&self) -> Html<Self> {
         html! {
-            <div>
-                <section class="game-container",>
-                    <header class="app-header",>
-                        <h1 class="app-title",>{ "Game of Life" }</h1>
-                    </header>
-                    <section class="game-area",>
-                        <div class="game-of-life",>
-                            { self.view_cellule_grid() }
-                        </div>
-                        <div class="game-buttons",>
-                            <button class="game-button", onclick=|_| Msg::Step,>{ "Step" }</button>
-                            <button class="game-button", onclick=|_| Msg::Reset,>{ "Reset" }</button>
-                        </div>
-                    </section>
-                </section>
-                <footer class="app-footer",>
-                    <strong class="footer-text",>
-                      { "Game of Life - a yew experiment" }
-                    </strong>
-                </footer>
+            <div id="game-container",>
+            { self.view_cellule_grid() }
             </div>
         }
     }
