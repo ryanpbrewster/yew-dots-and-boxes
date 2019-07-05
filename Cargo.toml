@@ -5,7 +5,6 @@ authors = ["Ryan Brewster <ryanpbrewster@google.com"]
 edition = "2018"
 
 [dependencies]
-rand = { version = "0.6.5", features = ["stdweb"] }
 log = "0.4"
 web_logger = "0.1"
 yew = "0.6.0"

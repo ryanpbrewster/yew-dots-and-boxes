@@ -1,1 +1,1 @@
-../target/wasm32-unknown-unknown/debug/dots-and-boxes.js
+../target/wasm32-unknown-unknown/release/dots-and-boxes.js

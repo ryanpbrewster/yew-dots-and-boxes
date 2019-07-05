@@ -10,7 +10,7 @@ body {
     line-height: 1.4em;
     color: #4d4d4d;
     min-width: 230px;
-    max-width: 550px;
+    max-width: 950px;
     margin: 0 auto;
     -webkit-font-smoothing: antialiased;
     -moz-font-smoothing: antialiased;
@@ -49,8 +49,7 @@ body {
 
 .game-area {
     width: 94%;
-    height: 510px;
-    max-width: 500px;
+    max-width: 1000px;
     margin: 20px auto;
 }
 
@@ -61,16 +60,16 @@ body {
 
 .game-of-life {
     background-color: aliceblue;
-    height: 400px;
     width: 100%;
     overflow: hidden;
 }
 
 .game-cellule {
     float: left;
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
     border: 1px solid #ccc;
+    border-radius: 1px;
 }
 
 .cellule-dead {

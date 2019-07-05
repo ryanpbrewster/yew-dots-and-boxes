@@ -1,9 +1,6 @@
 #![recursion_limit = "512"]
 
 use log::info;
-use rand::Rng;
-use std::time::Duration;
-use yew::services::{IntervalService, Task};
 use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -18,12 +15,9 @@ struct Cellule {
 }
 
 pub struct Model {
-    active: bool,
     cellules: Vec<Cellule>,
     cellules_width: usize,
     cellules_height: usize,
-    #[allow(unused)]
-    job: Box<dyn Task>,
 }
 
 impl Cellule {
@@ -68,16 +62,6 @@ fn wrap(coord: isize, range: isize) -> usize {
 }
 
 impl Model {
-    pub fn random_mutate(&mut self) {
-        for cellule in self.cellules.iter_mut() {
-            if rand::thread_rng().gen() {
-                cellule.set_alive();
-            } else {
-                cellule.set_dead();
-            }
-        }
-    }
-
     fn reset(&mut self) {
         for cellule in self.cellules.iter_mut() {
             cellule.set_dead();
@@ -131,36 +115,56 @@ impl Model {
         row * self.cellules_width + col
     }
 
-    fn toggle_cellule(&mut self, idx: usize) {
-        let cellule = self.cellules.get_mut(idx).unwrap();
-        if cellule.life_state == LifeState::Alive {
-            cellule.life_state = LifeState::Dead
-        } else {
-            cellule.life_state = LifeState::Alive
+    fn toggle_cellule(&mut self, i: usize, j: usize) {
+        let cellule = self.cellules.get_mut(i * self.cellules_width + j).unwrap();
+
+        cellule.life_state = match cellule.life_state {
+            LifeState::Alive => LifeState::Dead,
+            LifeState::Dead => LifeState::Alive,
         };
+    }
+
+    fn view_cellule_grid(&self) -> Html<Model> {
+        html! {
+            <table>
+            { for (0 .. self.cellules_height).map(|i| self.view_cellule_row(i)) }
+            </table>
+        }
+    }
+
+    fn view_cellule_row(&self, i: usize) -> Html<Model> {
+        html! {
+            <tr>
+            { for (0 .. self.cellules_width).map(|j| self.view_cellule(i, j)) }
+            </tr>
+        }
+    }
+
+    fn view_cellule(&self, i: usize, j: usize) -> Html<Model> {
+        let cellule = self.cellules[i * self.cellules_width + j];
+        let cellule_status = match cellule.life_state {
+            LifeState::Alive => "cellule-live",
+            LifeState::Dead => "cellule-dead",
+        };
+        html! {
+        <div class=("game-cellule", cellule_status),
+            onclick=|_| Msg::ToggleCellule(i, j),> </div>
+        }
     }
 }
 
 pub enum Msg {
-    Random,
-    Start,
     Step,
     Reset,
-    Stop,
-    ToggleCellule(usize),
-    Tick,
+    ToggleCellule(usize, usize),
 }
 
 impl Component for Model {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let callback = link.send_back(|_| Msg::Tick);
-        let mut interval = IntervalService::new();
-        let handle = interval.spawn(Duration::from_millis(200), callback);
+    fn create(_props: Self::Properties, _link: ComponentLink<Self>) -> Self {
         Model {
-            active: false,
             cellules: vec![
                 Cellule {
                     life_state: LifeState::Dead
@@ -169,20 +173,11 @@ impl Component for Model {
             ],
             cellules_width: 50,
             cellules_height: 40,
-            job: Box::new(handle),
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Random => {
-                self.random_mutate();
-                info!("Random");
-            }
-            Msg::Start => {
-                self.active = true;
-                info!("Start");
-            }
             Msg::Step => {
                 self.step();
             }
@@ -190,17 +185,8 @@ impl Component for Model {
                 self.reset();
                 info!("Reset");
             }
-            Msg::Stop => {
-                self.active = false;
-                info!("Stop");
-            }
-            Msg::ToggleCellule(idx) => {
-                self.toggle_cellule(idx);
-            }
-            Msg::Tick => {
-                if self.active {
-                    self.step();
-                }
+            Msg::ToggleCellule(i, j) => {
+                self.toggle_cellule(i, j);
             }
         }
         true
@@ -217,38 +203,20 @@ impl Renderable<Model> for Model {
                     </header>
                     <section class="game-area",>
                         <div class="game-of-life",>
-                            { for self.cellules.iter().enumerate().map(view_cellule) }
+                            { self.view_cellule_grid() }
                         </div>
                         <div class="game-buttons",>
-                            <button class="game-button", onclick=|_| Msg::Random,>{ "Random" }</button>
                             <button class="game-button", onclick=|_| Msg::Step,>{ "Step" }</button>
-                            <button class="game-button", onclick=|_| Msg::Start,>{ "Start" }</button>
-                            <button class="game-button", onclick=|_| Msg::Stop,>{ "Stop" }</button>
                             <button class="game-button", onclick=|_| Msg::Reset,>{ "Reset" }</button>
                         </div>
                     </section>
                 </section>
                 <footer class="app-footer",>
                     <strong class="footer-text",>
-                      { "Game of Life - a yew experiment " }
+                      { "Game of Life - a yew experiment" }
                     </strong>
-                    <a href="https://github.com/DenisKolodin/yew", target="_blank",>{ "source" }</a>
                 </footer>
             </div>
         }
-    }
-}
-
-fn view_cellule((idx, cellule): (usize, &Cellule)) -> Html<Model> {
-    let cellule_status = {
-        if cellule.life_state == LifeState::Alive {
-            "cellule-live"
-        } else {
-            "cellule-dead"
-        }
-    };
-    html! {
-        <div class=("game-cellule", cellule_status),
-            onclick=|_| Msg::ToggleCellule(idx),> </div>
     }
 }
