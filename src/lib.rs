@@ -1,159 +1,151 @@
 #![recursion_limit = "512"]
 
-use log::info;
 use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
-
-#[derive(Clone, Copy, PartialEq)]
-enum LifeState {
-    Alive,
-    Dead,
-}
+use log::info;
 
 #[derive(Clone, Copy)]
-struct Cellule {
-    life_state: LifeState,
+pub enum Color {
+    RED,
+    BLUE,
+}
+impl Default for Color {
+    fn default() -> Self {
+        Color::RED
+    }
+}
+impl std::fmt::Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match *self {
+            Color::RED => f.write_str("red"),
+            Color::BLUE => f.write_str("blue"),
+        }
+    }
 }
 
+
+// Grid of `width` x `height` boxes.
+// Box corners are at coordinates [0 .. width] x [0 .. height]
 pub struct Model {
-    cellules: Vec<Cellule>,
-    cellules_width: usize,
-    cellules_height: usize,
-}
-
-impl Cellule {
-    pub fn set_alive(&mut self) {
-        self.life_state = LifeState::Alive;
-    }
-
-    pub fn set_dead(&mut self) {
-        self.life_state = LifeState::Dead;
-    }
-
-    pub fn alive(&self) -> bool {
-        self.life_state == LifeState::Alive
-    }
-
-    pub fn count_alive_neighbors(neighbors: &[Cellule]) -> usize {
-        neighbors.iter().filter(|n| n.alive()).count()
-    }
-
-    pub fn alone(neighbors: &[Cellule]) -> bool {
-        Self::count_alive_neighbors(neighbors) < 2
-    }
-
-    pub fn overpopulated(neighbors: &[Cellule]) -> bool {
-        Self::count_alive_neighbors(neighbors) > 3
-    }
-
-    pub fn can_be_revived(neighbors: &[Cellule]) -> bool {
-        Self::count_alive_neighbors(neighbors) == 3
-    }
-}
-
-fn wrap(coord: isize, range: isize) -> usize {
-    let result = if coord < 0 {
-        (coord + range)
-    } else if coord >= range {
-        (coord - range)
-    } else {
-        coord
-    };
-    result as usize
+    width: usize,
+    height: usize,
+    boxes: Vec<Option<Color>>, // `height` x `width`, row-major
+    hlines: Vec<Option<Color>>, // `height+1` x `width`, row-major
+    vlines: Vec<Option<Color>>, // `height` x `width+1`, row-major
+    turn: Color,
 }
 
 impl Model {
-    fn reset(&mut self) {
-        for cellule in self.cellules.iter_mut() {
-            cellule.set_dead();
+    fn new(width: usize, height: usize) -> Model {
+        Model {
+            width,
+            height,
+            boxes: vec![None; width * height],
+            hlines: vec![None; width * (height + 1)],
+            vlines: vec![None; (width + 1) * height],
+            turn: Color::RED,
+        }
+    }
+    fn get_vline(&self, i: usize, j: usize) -> Option<Color> {
+        assert!(i < self.height);
+        assert!(j <= self.width);
+        self.vlines[(self.width + 1) * i + j]
+    }
+    fn get_hline(&self, i: usize, j: usize) -> Option<Color> {
+        assert!(i <= self.height);
+        assert!(j < self.width);
+        self.hlines[self.width * i + j]
+    }
+
+    fn color_vline(&mut self, i: usize, j: usize, c: Color) {
+        info!("coloring vertical line ({}, {}) = {}", i, j, c);
+        assert!(i < self.height);
+        assert!(j <= self.width);
+        self.vlines[(self.width + 1) * i + j] = Some(c);
+    }
+
+    fn color_hline(&mut self, i: usize, j: usize, c: Color) {
+        info!("coloring horizontal line ({}, {}) = {}", i, j, c);
+        assert!(i <= self.height);
+        assert!(j < self.width);
+        self.hlines[self.width * i + j] = Some(c);
+    }
+
+    fn view_dots(&self) -> Html<Model> {
+        html! {
+            { for (0 ..= self.height).map(|i| self.view_dots_row(i)) }
         }
     }
 
-    pub fn step(&mut self) {
-        let mut to_dead = Vec::new();
-        let mut to_live = Vec::new();
-        for row in 0..self.cellules_height {
-            for col in 0..self.cellules_width {
-                let neighbors = self.neighbors(row as isize, col as isize);
-
-                let current_idx = self.row_col_as_idx(row as isize, col as isize);
-                if self.cellules[current_idx].alive() {
-                    if Cellule::alone(&neighbors) || Cellule::overpopulated(&neighbors) {
-                        to_dead.push(current_idx);
-                    }
-                } else {
-                    if Cellule::can_be_revived(&neighbors) {
-                        to_live.push(current_idx);
-                    }
-                }
-            }
+    fn view_dots_row(&self, i: usize) -> Html<Model> {
+        html! {
+            { for (0 ..= self.width).map(|j| self.view_dot(i, j)) }
         }
-        to_dead
-            .iter()
-            .for_each(|idx| self.cellules[*idx].set_dead());
-        to_live
-            .iter()
-            .for_each(|idx| self.cellules[*idx].set_alive());
     }
 
-    fn neighbors(&self, row: isize, col: isize) -> [Cellule; 8] {
-        [
-            self.cellules[self.row_col_as_idx(row + 1, col)],
-            self.cellules[self.row_col_as_idx(row + 1, col + 1)],
-            self.cellules[self.row_col_as_idx(row + 1, col - 1)],
-            self.cellules[self.row_col_as_idx(row - 1, col)],
-            self.cellules[self.row_col_as_idx(row - 1, col + 1)],
-            self.cellules[self.row_col_as_idx(row - 1, col - 1)],
-            self.cellules[self.row_col_as_idx(row, col - 1)],
-            self.cellules[self.row_col_as_idx(row, col + 1)],
-        ]
+    fn view_dot(&self, i: usize, j: usize) -> Html<Model> {
+        html! {
+        <div class="game-dot",
+             style=format!("top:{}px;left:{}px;", 64 * i, 64 * j),>
+        </div>
+        }
     }
 
-    fn row_col_as_idx(&self, row: isize, col: isize) -> usize {
-        let row = wrap(row, self.cellules_height as isize);
-        let col = wrap(col, self.cellules_width as isize);
-
-        row * self.cellules_width + col
+    fn view_hlines(&self) -> Html<Model> {
+        html! {
+            { for (0 ..= self.height).map(|i| self.view_hlines_row(i)) }
+        }
     }
 
-    fn toggle_cellule(&mut self, i: usize, j: usize) {
-        let cellule = self.cellules.get_mut(i * self.cellules_width + j).unwrap();
+    fn view_hlines_row(&self, i: usize) -> Html<Model> {
+        html! {
+            { for (0 .. self.width).map(|j| self.view_hline(i, j)) }
+        }
+    }
 
-        cellule.life_state = match cellule.life_state {
-            LifeState::Alive => LifeState::Dead,
-            LifeState::Dead => LifeState::Alive,
+    fn view_hline(&self, i: usize, j: usize) -> Html<Model> {
+        let claim = match self.get_hline(i, j) {
+            None => format!("game-unclaimed-{}", self.turn),
+            Some(c) => format!("game-claimed-{}", c),
         };
-    }
-
-    fn view_cellule_grid(&self) -> Html<Model> {
+        let color = self.turn;
         html! {
-            { for (0 .. self.cellules_height).map(|i| self.view_cellule_row(i)) }
+        <div class=("game-hline", &claim),
+             style=format!("top:{}px;left:{}px;", 64 * i, 64 * j),
+             onclick=|_| Msg::ColorHline(i, j, color),>
+        </div>
         }
     }
 
-    fn view_cellule_row(&self, i: usize) -> Html<Model> {
+    fn view_vlines(&self) -> Html<Model> {
         html! {
-            { for (0 .. self.cellules_width).map(|j| self.view_cellule(i, j)) }
+            { for (0 .. self.height).map(|i| self.view_vlines_row(i)) }
         }
     }
 
-    fn view_cellule(&self, i: usize, j: usize) -> Html<Model> {
-        let cellule = self.cellules[i * self.cellules_width + j];
-        let c = match cellule.life_state {
-            LifeState::Alive => "black",
-            LifeState::Dead => "white",
+    fn view_vlines_row(&self, i: usize) -> Html<Model> {
+        html! {
+            { for (0 ..= self.width).map(|j| self.view_vline(i, j)) }
+        }
+    }
+
+    fn view_vline(&self, i: usize, j: usize) -> Html<Model> {
+        let claim = match self.get_vline(i, j) {
+            None => format!("game-unclaimed-{}", self.turn),
+            Some(c) => format!("game-claimed-{}", c),
         };
+        let color = self.turn;
         html! {
-        <div class="game-cellule",
-             style=format!("background-color:{};top:{}px;left:{}px;", c, 16 * i, 16 * j),
-            onclick=|_| Msg::ToggleCellule(i, j),> </div>
+        <div class=("game-vline", &claim),
+             style=format!("top:{}px;left:{}px;", 64 * i, 64 * j),
+             onclick=|_| Msg::ColorVline(i, j, color),>
+        </div>
         }
     }
 }
 
 pub enum Msg {
-    Step,
-    Reset,
-    ToggleCellule(usize, usize),
+    ColorVline(usize, usize, Color),
+    ColorHline(usize, usize, Color),
 }
 
 impl Component for Model {
@@ -161,29 +153,16 @@ impl Component for Model {
     type Properties = ();
 
     fn create(_props: Self::Properties, _link: ComponentLink<Self>) -> Self {
-        Model {
-            cellules: vec![
-                Cellule {
-                    life_state: LifeState::Dead
-                };
-                2000
-            ],
-            cellules_width: 50,
-            cellules_height: 40,
-        }
+        Model::new(8, 6)
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Step => {
-                self.step();
-            }
-            Msg::Reset => {
-                self.reset();
-                info!("Reset");
-            }
-            Msg::ToggleCellule(i, j) => {
-                self.toggle_cellule(i, j);
+            Msg::ColorHline(i, j, c) => {
+                self.color_hline(i, j, c);
+            },
+            Msg::ColorVline(i, j, c) => {
+                self.color_vline(i, j, c);
             }
         }
         true
@@ -194,7 +173,17 @@ impl Renderable<Model> for Model {
     fn view(&self) -> Html<Self> {
         html! {
             <div id="game-container",>
-            { self.view_cellule_grid() }
+                <div id="game-dots",>
+                { self.view_dots() }
+                </div>
+
+                <div id="game-hlines",>
+                { self.view_hlines() }
+                </div>
+
+                <div id="game-vlines",>
+                { self.view_vlines() }
+                </div>
             </div>
         }
     }
