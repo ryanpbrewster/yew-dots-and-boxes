@@ -65,12 +65,10 @@ impl Model {
     fn is_box_filled(&self, i: usize, j: usize) -> bool {
         assert!(i < self.height);
         assert!(j < self.width);
-        let ans = self.get_hline(i, j)
+        self.get_hline(i, j)
             && self.get_hline(i + 1, j)
             && self.get_vline(i, j)
-            && self.get_vline(i, j + 1);
-        info!("box ({},{}) ? {}", i, j, ans);
-        ans
+            && self.get_vline(i, j + 1)
     }
 
     fn color_vline(&mut self, i: usize, j: usize, c: Color) {
@@ -85,19 +83,17 @@ impl Model {
         *filled = true;
 
         let mut num_converted = 0;
-        if self.is_box_filled(i, j) {
-            self.boxes[self.width * i + j] = Some(c);
-            num_converted += 1;
-        }
         if j > 0 && self.is_box_filled(i, j - 1) {
             self.boxes[self.width * i + j - 1] = Some(c);
+            num_converted += 1;
+        }
+        if j < self.width && self.is_box_filled(i, j) {
+            self.boxes[self.width * i + j] = Some(c);
             num_converted += 1;
         }
 
         if num_converted == 0 {
             self.turn = self.turn.next();
-        } else {
-            info!("converted {} boxes", num_converted);
         }
     }
 
@@ -113,19 +109,17 @@ impl Model {
         *filled = true;
 
         let mut num_converted = 0;
-        if self.is_box_filled(i, j) {
-            self.boxes[self.width * i + j] = Some(c);
-            num_converted += 1;
-        }
         if i > 0 && self.is_box_filled(i - 1, j) {
             self.boxes[self.width * (i - 1) + j] = Some(c);
+            num_converted += 1;
+        }
+        if i < self.height && self.is_box_filled(i, j) {
+            self.boxes[self.width * i + j] = Some(c);
             num_converted += 1;
         }
 
         if num_converted == 0 {
             self.turn = self.turn.next();
-        } else {
-            info!("converted {} boxes", num_converted);
         }
     }
 
