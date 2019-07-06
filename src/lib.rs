@@ -57,15 +57,47 @@ impl Model {
         assert!(j < self.width);
         self.hlines[self.width * i + j]
     }
+    fn get_box(&self, i: usize, j: usize) -> Option<Color> {
+        assert!(i < self.height);
+        assert!(j < self.width);
+        self.boxes[self.width * i + j]
+    }
+    fn is_box_filled(&self, i: usize, j: usize) -> bool {
+        assert!(i < self.height);
+        assert!(j < self.width);
+        let ans = self.get_hline(i, j)
+            && self.get_hline(i + 1, j)
+            && self.get_vline(i, j)
+            && self.get_vline(i, j + 1);
+        info!("box ({},{}) ? {}", i, j, ans);
+        ans
+    }
 
     fn color_vline(&mut self, i: usize, j: usize, c: Color) {
         info!("coloring vertical line ({}, {}) = {}", i, j, c);
         assert!(i < self.height);
         assert!(j <= self.width);
+
         let filled = &mut self.vlines[(self.width + 1) * i + j];
-        if !*filled {
-            *filled = true;
+        if *filled {
+            return;
+        }
+        *filled = true;
+
+        let mut num_converted = 0;
+        if self.is_box_filled(i, j) {
+            self.boxes[self.width * i + j] = Some(c);
+            num_converted += 1;
+        }
+        if j > 0 && self.is_box_filled(i, j - 1) {
+            self.boxes[self.width * i + j - 1] = Some(c);
+            num_converted += 1;
+        }
+
+        if num_converted == 0 {
             self.turn = self.turn.next();
+        } else {
+            info!("converted {} boxes", num_converted);
         }
     }
 
@@ -75,9 +107,25 @@ impl Model {
         assert!(j < self.width);
 
         let filled = &mut self.hlines[self.width * i + j];
-        if !*filled {
-            *filled = true;
+        if *filled {
+            return;
+        }
+        *filled = true;
+
+        let mut num_converted = 0;
+        if self.is_box_filled(i, j) {
+            self.boxes[self.width * i + j] = Some(c);
+            num_converted += 1;
+        }
+        if i > 0 && self.is_box_filled(i - 1, j) {
+            self.boxes[self.width * (i - 1) + j] = Some(c);
+            num_converted += 1;
+        }
+
+        if num_converted == 0 {
             self.turn = self.turn.next();
+        } else {
+            info!("converted {} boxes", num_converted);
         }
     }
 
@@ -156,6 +204,30 @@ impl Model {
         </div>
         }
     }
+
+    fn view_boxes(&self) -> Html<Model> {
+        html! {
+            { for (0 .. self.height).map(|i| self.view_boxes_row(i)) }
+        }
+    }
+
+    fn view_boxes_row(&self, i: usize) -> Html<Model> {
+        html! {
+            { for (0 .. self.width).map(|j| self.view_box(i, j)) }
+        }
+    }
+
+    fn view_box(&self, i: usize, j: usize) -> Html<Model> {
+        let fill = match self.get_box(i, j) {
+            None => format!("game-box-empty"),
+            Some(c) => format!("game-box-full-{}", c),
+        };
+        html! {
+        <div class=("game-box", fill),
+             style=format!("top:{}px;left:{}px;", 64 * i, 64 * j),>
+        </div>
+        }
+    }
 }
 
 pub enum Msg {
@@ -198,6 +270,10 @@ impl Renderable<Model> for Model {
 
                 <div id="game-vlines",>
                 { self.view_vlines() }
+                </div>
+
+                <div id="game-boxes",>
+                { self.view_boxes() }
                 </div>
             </div>
         }

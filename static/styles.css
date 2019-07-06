@@ -10,13 +10,13 @@ body {
 
 .game-dot {
     position: absolute;
-    width: 17px;
-    height: 17px;
-    border-radius: 17px;
+    width: 18px;
+    height: 18px;
+    border-radius: 18px;
     background-color: white;
-    border: 1px solid #CCC;
+    border: 2px solid black;
     z-index: 1;
-    transform: translate(-1px, -1px);
+    transform: translate(-4px, -4px);
 }
 
 .game-hline {
@@ -45,5 +45,20 @@ body {
   background-color: red;
 }
 .game-line-empty.game-turn-blue:hover {
+  background-color: blue;
+}
+
+.game-box {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    transform: translate(8px, 8px);
+    z-index: -1;
+}
+
+.game-box-full-red {
+  background-color: red;
+}
+.game-box-full-blue {
   background-color: blue;
 }
