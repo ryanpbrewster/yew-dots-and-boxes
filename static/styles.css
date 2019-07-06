@@ -33,24 +33,17 @@ body {
     border-radius: 16px;
 }
 
-.game-claimed-red {
-  background-color: red;
+.game-line-empty {
+  background-color: lightgray;
+  cursor: pointer;
 }
-.game-unclaimed-red {
-  background-color: gray;
-}
-.game-unclaimed-red:hover {
-    cursor: pointer;
-    background-color: red;
+.game-line-full {
+  background-color: black;
 }
 
-.game-claimed-blue {
+.game-line-empty.game-turn-red:hover {
   background-color: red;
 }
-.game-unclaimed-blue {
-  background-color: gray;
-}
-.game-unclaimed-blue:hover {
-    cursor: pointer;
-    background-color: blue;
+.game-line-empty.game-turn-blue:hover {
+  background-color: blue;
 }

@@ -1,16 +1,19 @@
 #![recursion_limit = "512"]
 
-use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 use log::info;
+use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 
 #[derive(Clone, Copy)]
 pub enum Color {
     RED,
     BLUE,
 }
-impl Default for Color {
-    fn default() -> Self {
-        Color::RED
+impl Color {
+    fn next(&self) -> Color {
+        match *self {
+            Color::RED => Color::BLUE,
+            Color::BLUE => Color::RED,
+        }
     }
 }
 impl std::fmt::Display for Color {
@@ -22,15 +25,14 @@ impl std::fmt::Display for Color {
     }
 }
 
-
 // Grid of `width` x `height` boxes.
 // Box corners are at coordinates [0 .. width] x [0 .. height]
 pub struct Model {
     width: usize,
     height: usize,
     boxes: Vec<Option<Color>>, // `height` x `width`, row-major
-    hlines: Vec<Option<Color>>, // `height+1` x `width`, row-major
-    vlines: Vec<Option<Color>>, // `height` x `width+1`, row-major
+    hlines: Vec<bool>,         // `height+1` x `width`, row-major
+    vlines: Vec<bool>,         // `height` x `width+1`, row-major
     turn: Color,
 }
 
@@ -40,17 +42,17 @@ impl Model {
             width,
             height,
             boxes: vec![None; width * height],
-            hlines: vec![None; width * (height + 1)],
-            vlines: vec![None; (width + 1) * height],
+            hlines: vec![false; width * (height + 1)],
+            vlines: vec![false; (width + 1) * height],
             turn: Color::RED,
         }
     }
-    fn get_vline(&self, i: usize, j: usize) -> Option<Color> {
+    fn get_vline(&self, i: usize, j: usize) -> bool {
         assert!(i < self.height);
         assert!(j <= self.width);
         self.vlines[(self.width + 1) * i + j]
     }
-    fn get_hline(&self, i: usize, j: usize) -> Option<Color> {
+    fn get_hline(&self, i: usize, j: usize) -> bool {
         assert!(i <= self.height);
         assert!(j < self.width);
         self.hlines[self.width * i + j]
@@ -60,14 +62,23 @@ impl Model {
         info!("coloring vertical line ({}, {}) = {}", i, j, c);
         assert!(i < self.height);
         assert!(j <= self.width);
-        self.vlines[(self.width + 1) * i + j] = Some(c);
+        let filled = &mut self.vlines[(self.width + 1) * i + j];
+        if !*filled {
+            *filled = true;
+            self.turn = self.turn.next();
+        }
     }
 
     fn color_hline(&mut self, i: usize, j: usize, c: Color) {
         info!("coloring horizontal line ({}, {}) = {}", i, j, c);
         assert!(i <= self.height);
         assert!(j < self.width);
-        self.hlines[self.width * i + j] = Some(c);
+
+        let filled = &mut self.hlines[self.width * i + j];
+        if !*filled {
+            *filled = true;
+            self.turn = self.turn.next();
+        }
     }
 
     fn view_dots(&self) -> Html<Model> {
@@ -103,13 +114,15 @@ impl Model {
     }
 
     fn view_hline(&self, i: usize, j: usize) -> Html<Model> {
-        let claim = match self.get_hline(i, j) {
-            None => format!("game-unclaimed-{}", self.turn),
-            Some(c) => format!("game-claimed-{}", c),
+        let fill = if self.get_hline(i, j) {
+            "game-line-full"
+        } else {
+            "game-line-empty"
         };
+        let turn = format!("game-turn-{}", self.turn);
         let color = self.turn;
         html! {
-        <div class=("game-hline", &claim),
+        <div class=("game-hline", fill, turn),
              style=format!("top:{}px;left:{}px;", 64 * i, 64 * j),
              onclick=|_| Msg::ColorHline(i, j, color),>
         </div>
@@ -129,13 +142,15 @@ impl Model {
     }
 
     fn view_vline(&self, i: usize, j: usize) -> Html<Model> {
-        let claim = match self.get_vline(i, j) {
-            None => format!("game-unclaimed-{}", self.turn),
-            Some(c) => format!("game-claimed-{}", c),
+        let fill = if self.get_vline(i, j) {
+            "game-line-full"
+        } else {
+            "game-line-empty"
         };
+        let turn = format!("game-turn-{}", self.turn);
         let color = self.turn;
         html! {
-        <div class=("game-vline", &claim),
+        <div class=("game-vline", fill, turn),
              style=format!("top:{}px;left:{}px;", 64 * i, 64 * j),
              onclick=|_| Msg::ColorVline(i, j, color),>
         </div>
@@ -160,7 +175,7 @@ impl Component for Model {
         match msg {
             Msg::ColorHline(i, j, c) => {
                 self.color_hline(i, j, c);
-            },
+            }
             Msg::ColorVline(i, j, c) => {
                 self.color_vline(i, j, c);
             }
